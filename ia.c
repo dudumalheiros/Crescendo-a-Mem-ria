@@ -2,31 +2,35 @@
 #include <stdlib.h>
 #include <time.h>
 
-// IA representa o "Esquecimento": cria o pior caso para o próximo desafio
-void acaoIA(Memoria vetor[], int tamanho, int algoritmoUsado) {
-    srand(time(NULL));
+static void swapM(Memoria *a, Memoria *b) {
+    Memoria t = *a; *a = *b; *b = t;
+}
 
-    if (algoritmoUsado == 1) { 
-        // Bubble Sort -> cria vetor em ordem reversa
-        for (int i = 0; i < tamanho / 2; i++) {
-            Memoria temp = vetor[i];
-            vetor[i] = vetor[tamanho - 1 - i];
-            vetor[tamanho - 1 - i] = temp;
+void embaralharPiorCaso(int faseAtual, Memoria v[], int n) {
+    // ideia: preparar o vetor para dificultar o algoritmo da PROXIMA fase
+    // (faseAtual+1). Simplificação: reverte, quase ordena, ou embaralha forte.
+    srand((unsigned)time(NULL));
+
+    int prox = faseAtual + 1;
+    if (prox == 2) {
+        // selection -> muita repeticao e dispersao
+        for (int i = 0; i < n; ++i) v[i].valorAfeto = (i*13 + rand()%5) % 100;
+    } else if (prox == 3) {
+        // insertion -> vetor quase ordenado (desafio pequeno)
+        for (int i = 0; i < n; ++i) v[i].valorAfeto = 5 + i*5;
+        // insere um erro leve
+        if (n >= 2) {
+            int a = rand()%n, b = rand()%n;
+            swapM(&v[a], &v[b]);
         }
-    } else if (algoritmoUsado == 2) {
-        // Selection Sort -> embaralha fortemente
-        for (int i = 0; i < tamanho; i++) {
-            int j = rand() % tamanho;
-            Memoria temp = vetor[i];
-            vetor[i] = vetor[j];
-            vetor[j] = temp;
-        }
+    } else if (prox == 4) {
+        // quick -> bastante aleatorio (para pivot ruim ocasional)
+        for (int i = 0; i < n; ++i) v[i].valorAfeto = rand()%100;
+    } else if (prox == 5) {
+        // merge -> mistura moderada
+        for (int i = 0; i < n; ++i) v[i].valorAfeto = (i*7 + rand()%10) % 100;
     } else {
-        // Outros algoritmos -> cria pequenos blocos desordenados
-        for (int i = 0; i < tamanho - 2; i += 3) {
-            Memoria temp = vetor[i];
-            vetor[i] = vetor[i + 1];
-            vetor[i + 1] = temp;
-        }
+        // caso geral: reverso
+        for (int i = 0; i < n/2; ++i) swapM(&v[i], &v[n-1-i]);
     }
 }

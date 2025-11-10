@@ -2,6 +2,7 @@
 #define IA_H
 #include "memoria.h"
 
-void acaoIA(Memoria vetor[], int tamanho, int algoritmoUsado);
+// Gera um "pior caso" aproximado para a proxima fase, a partir do vetor atual
+void embaralharPiorCaso(int faseAtual, Memoria v[], int n);
 
 #endif
