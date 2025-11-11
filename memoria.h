@@ -1,19 +1,18 @@
 #ifndef MEMORIA_H
 #define MEMORIA_H
 
-#define MEM_MAX 16
-
 typedef struct {
-    int x, y; // reservado para futuro (mapa 2D)
-} Coordenada;
-
-typedef struct {
-    char nome[64];
-    int  valorAfeto;   // 0..100
-    Coordenada coord;
+    char nome[50];
+    int valorAfeto;
+    int coordX;
+    int coordY;
+    int encontrada; // 0 = escondida, 1 = revelada
 } Memoria;
 
-// Carrega conjunto de memorias adequado para a fase (e tamanho n)
-void carregarFase(int fase, Memoria vetor[], int *n);
+void criarMemorias(Memoria vetor[], int n);
+void desenharMemorias(Memoria vetor[], int n);
+void verificarOrdem(Memoria vetor[], int n);
+void atualizarTela();
+void executarJogo();
 
 #endif
