@@ -56,6 +56,7 @@ Ao final de cada fase, o jogador vê suas memórias **ordenadas** e uma **explic
 ```bash
 gcc main.c memoria.c algoritmos.c ia.c -lraylib -lwinmm -lgdi32 -o jogo.exe
 
+```
 ## 🎮 Demonstração do Jogo
 
 ![Gameplay](https://raw.githubusercontent.com/dudumalheiros/Crescendo-a-Mem-ria/main/assets/gameplay.gif)
