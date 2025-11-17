@@ -1,55 +1,77 @@
+// algoritmos.c
 #include "algoritmos.h"
 
+// ----------- BUBBLE SORT -----------
 void bubbleSort(Memoria vetor[], int n) {
     for (int i = 0; i < n - 1; i++) {
-        for (int j = 0; j < n - i - 1; j++) {
+        for (int j = 0; j < n - 1 - i; j++) {
             if (vetor[j].valorAfeto > vetor[j + 1].valorAfeto) {
-                Memoria tmp = vetor[j];
-                vetor[j] = vetor[j + 1];
+                Memoria tmp  = vetor[j];
+                vetor[j]     = vetor[j + 1];
                 vetor[j + 1] = tmp;
             }
         }
     }
 }
 
+// ----------- SELECTION SORT -----------
 void selectionSort(Memoria vetor[], int n) {
     for (int i = 0; i < n - 1; i++) {
         int min = i;
-        for (int j = i + 1; j < n; j++)
-            if (vetor[j].valorAfeto < vetor[min].valorAfeto)
+        for (int j = i + 1; j < n; j++) {
+            if (vetor[j].valorAfeto < vetor[min].valorAfeto) {
                 min = j;
-        Memoria temp = vetor[i];
-        vetor[i] = vetor[min];
-        vetor[min] = temp;
+            }
+        }
+        if (min != i) {
+            Memoria tmp = vetor[i];
+            vetor[i]    = vetor[min];
+            vetor[min]  = tmp;
+        }
     }
+}
+
+// ----------- QUICK SORT -----------
+static void quickSortInterno(Memoria vetor[], int inicio, int fim) {
+    if (inicio >= fim) return;
+
+    int i = inicio;
+    int j = fim;
+    int pivo = vetor[(inicio + fim) / 2].valorAfeto;
+
+    while (i <= j) {
+        while (vetor[i].valorAfeto < pivo) i++;
+        while (vetor[j].valorAfeto > pivo) j--;
+
+        if (i <= j) {
+            Memoria tmp = vetor[i];
+            vetor[i]    = vetor[j];
+            vetor[j]    = tmp;
+            i++;
+            j--;
+        }
+    }
+
+    if (inicio < j) quickSortInterno(vetor, inicio, j);
+    if (i < fim)    quickSortInterno(vetor, i, fim);
 }
 
 void quickSort(Memoria vetor[], int inicio, int fim) {
-    if (inicio < fim) {
-        int pivo = vetor[fim].valorAfeto;
-        int i = inicio - 1;
-        for (int j = inicio; j < fim; j++) {
-            if (vetor[j].valorAfeto < pivo) {
-                i++;
-                Memoria temp = vetor[i];
-                vetor[i] = vetor[j];
-                vetor[j] = temp;
-            }
-        }
-        Memoria temp = vetor[i + 1];
-        vetor[i + 1] = vetor[fim];
-        vetor[fim] = temp;
-        int p = i + 1;
-        quickSort(vetor, inicio, p - 1);
-        quickSort(vetor, p + 1, fim);
-    }
+    quickSortInterno(vetor, inicio, fim);
 }
 
+// ----------- DESPACHO GERAL -----------
 void ordenarMemorias(Memoria vetor[], int n, int tipoAlgoritmo) {
     switch (tipoAlgoritmo) {
-        case 1: bubbleSort(vetor, n); break;
-        case 2: selectionSort(vetor, n); break;
-        case 3: quickSort(vetor, 0, n - 1); break;
-        default: bubbleSort(vetor, n); break;
+        case 1:
+            bubbleSort(vetor, n);
+            break;
+        case 2:
+            selectionSort(vetor, n);
+            break;
+        case 3:
+        default:
+            quickSort(vetor, 0, n - 1);
+            break;
     }
 }

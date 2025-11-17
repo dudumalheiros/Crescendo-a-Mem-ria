@@ -1,51 +1,70 @@
+// main.c
 #include "raylib.h"
 #include "memoria.h"
 #include "algoritmos.h"
 #include "ia.h"
-#include <math.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <math.h>
 #include <string.h>
 
 #define LARGURA 900
-#define ALTURA 600
+#define ALTURA  600
 #define TAMANHO 5
 
-typedef enum { MENU, FASE, FIM } EstadoJogo;
+typedef enum {
+    EST_MENU,
+    EST_FASE,
+    EST_PESOS,
+    EST_RESULTADO,
+    EST_EXPLICACAO,
+    EST_FIM
+} EstadoJogo;
 
 typedef struct {
-    Rectangle paredes[20];
+    Rectangle paredes[32];
     int qtd;
 } Labirinto;
 
-// ---------- FUNÇÕES DE FUNDO ----------
-void desenharFundoFase1(void) {
+static void DesenharFundoFase1(void) {
     ClearBackground((Color){135, 206, 235, 255});
-    DrawCircle(780, 100, 60, YELLOW);
-    DrawCircle(300, 600, 300, (Color){0, 200, 0, 255});
-    DrawCircle(700, 620, 250, (Color){34, 139, 34, 255});
+    DrawCircle(780, 120, 60, YELLOW);
+    DrawCircle(300, 640, 320, (Color){0, 200, 0, 255});
+    DrawCircle(700, 640, 260, (Color){34, 139, 34, 255});
 }
 
-void desenharFundoFase2(void) {
+static void DesenharFundoFase2(void) {
     ClearBackground((Color){255, 165, 90, 255});
-    DrawCircle(120, 100, 60, ORANGE);
-    DrawCircle(300, 600, 300, (Color){200, 120, 50, 255});
-    DrawCircle(700, 620, 250, (Color){160, 82, 45, 255});
+    DrawCircle(120, 120, 60, ORANGE);
+    DrawCircle(300, 640, 320, (Color){200, 120, 50, 255});
+    DrawCircle(700, 640, 260, (Color){160, 82, 45, 255});
 }
 
-void desenharFundoFase3(void) {
+static void DesenharFundoFase3(void) {
     ClearBackground((Color){10, 10, 30, 255});
-    DrawCircle(780, 100, 50, (Color){240, 240, 180, 255});
-    for (int i = 0; i < 80; i++)
+    DrawCircle(780, 120, 50, (Color){240, 240, 180, 255});
+    for (int i = 0; i < 120; i++)
         DrawPixel(rand() % LARGURA, rand() % ALTURA, WHITE);
 }
 
-// ---------- LABIRINTOS ----------
-Labirinto criarLabirinto(int fase) {
+static const char *NomeAlgoritmoDaFase(int fase) {
+    if (fase == 1) return "Bubble Sort";
+    if (fase == 2) return "Selection Sort";
+    return "Quick Sort";
+}
+
+static int TipoAlgoritmoDaFase(int fase) {
+    if (fase == 1) return 1; // bubble
+    if (fase == 2) return 2; // selection
+    return 3;               // quick
+}
+
+// -------- LABIRINTOS (os mesmos da sua versão) --------
+static Labirinto CriarLabirinto(int fase) {
     Labirinto l = {0};
 
-    if (fase == 1) { // Fase 1 - com passagem central aberta
-        Rectangle paredesTemp[] = {
+    if (fase == 1) { // simples, com vão central
+        Rectangle tmp[] = {
             {50, 100, 800, 20},  // topo
             {50, 500, 800, 20},  // base
             {50, 100, 20, 420},  // esquerda
@@ -56,56 +75,114 @@ Labirinto criarLabirinto(int fase) {
             {200, 180, 20, 160},  // lateral esquerda
             {680, 180, 20, 160},  // lateral direita
             {200, 320, 190, 20},  // base esquerda
-            {510, 320, 190, 20},  // base direita (abertura central)
+            {510, 320, 190, 20},  // base direita
         };
-        l.qtd = sizeof(paredesTemp) / sizeof(paredesTemp[0]);
-        for (int i = 0; i < l.qtd; i++) l.paredes[i] = paredesTemp[i];
+        l.qtd = sizeof(tmp)/sizeof(tmp[0]);
+        for (int i = 0; i < l.qtd; i++) l.paredes[i] = tmp[i];
     }
+    else if (fase == 2) { // médio
+        Rectangle tmp[] = {
+            {50, 100, 800, 20},
+            {50, 500, 800, 20},
+            {50, 100, 20, 420},
+            {830, 100, 20, 420},
 
-    else if (fase == 2) { // Fase 2 - média, com caminhos livres
-        Rectangle paredesTemp[] = {
-            {50, 100, 800, 20},  // topo
-            {50, 500, 800, 20},  // base
-            {50, 100, 20, 420},  // esquerda
-            {830, 100, 20, 420}, // direita
-
-            // blocos internos com vão lateral e meio
             {150, 200, 600, 20},
-            {150, 350, 200, 20}, // base esquerda
-            {550, 350, 200, 20}, // base direita
-            {150, 200, 20, 150}, // lateral esquerda
-            {730, 200, 20, 150}, // lateral direita
-            {430, 260, 40, 20}   // pilar central curto
+            {150, 350, 200, 20},
+            {550, 350, 200, 20},
+            {150, 200, 20, 150},
+            {730, 200, 20, 150},
+            {430, 260, 40, 20}
         };
-        l.qtd = sizeof(paredesTemp) / sizeof(paredesTemp[0]);
-        for (int i = 0; i < l.qtd; i++) l.paredes[i] = paredesTemp[i];
+        l.qtd = sizeof(tmp)/sizeof(tmp[0]);
+        for (int i = 0; i < l.qtd; i++) l.paredes[i] = tmp[i];
     }
+    else { // fase 3
+        Rectangle tmp[] = {
+            // moldura
+            {50,  80, 800, 20},
+            {50, 520, 800, 20},
+            {50,  80,  20, 460},
+            {830, 80,  20, 460},
 
-   else { // Fase 3 - difícil, mas com passagens funcionais
-    Rectangle paredesTemp[] = {
-        // Moldura externa
-        {50, 80, 800, 20},   // topo
-        {50, 520, 800, 20},  // base
-        {50, 80, 20, 460},   // esquerda
-        {830, 80, 20, 460},  // direita
-
-        // Estrutura interna com passagem no centro
-        {200, 180, 500, 20}, // topo interno
-        {200, 420, 220, 20}, // base esquerda
-        {480, 420, 220, 20}, // base direita (vão central)
-        {200, 180, 20, 240}, // lateral esquerda
-        {680, 180, 20, 240}, // lateral direita
-        {420, 280, 60, 20}   // pequena ponte no meio
-    };
-    l.qtd = sizeof(paredesTemp) / sizeof(paredesTemp[0]);
-    for (int i = 0; i < l.qtd; i++) l.paredes[i] = paredesTemp[i];
-}
-
+            // interno
+            {200, 180, 500, 20},
+            {200, 420, 220, 20},
+            {480, 420, 220, 20},
+            {200, 180,  20, 240},
+            {680, 180,  20, 240},
+            {420, 280,  60, 20}
+        };
+        l.qtd = sizeof(tmp)/sizeof(tmp[0]);
+        for (int i = 0; i < l.qtd; i++) l.paredes[i] = tmp[i];
+    }
 
     return l;
 }
 
-// ---------- PRINCIPAL ----------
+// --------- EXPLICAÇÃO EM UMA TELA SEPARADA ---------
+static void DesenharPainelExplicacao(int fase) {
+    Rectangle painel = {40, 260, LARGURA - 80, 260};
+    DrawRectangleRec(painel, (Color){220, 220, 220, 255});
+    DrawRectangleLinesEx(painel, 2, DARKGRAY);
+
+    int x = (int)painel.x + 20;
+    int y = (int)painel.y + 20;
+
+    if (fase == 1) {
+        DrawText("Bubble Sort: percorre o vetor varias vezes, comparando vizinhos.",
+                 x, y, 18, DARKBLUE);
+        y += 28;
+        DrawText("Se o da esquerda for maior, troca de lugar. As memorias vao 'borbulhando' ate ficarem",
+                 x, y, 16, DARKGRAY);
+        y += 22;
+        DrawText("na ordem dos pesos que voce escolheu.", x, y, 16, DARKGRAY);
+        y += 28;
+        DrawText("Exemplo (peso usando campo valorAfeto):", x, y, 16, BLUE);
+        y += 22;
+        DrawText("for (i = 0; i < n-1; i++) {", x, y, 16, BLUE); y += 20;
+        DrawText("    for (j = 0; j < n-1-i; j++) {", x, y, 16, BLUE); y += 20;
+        DrawText("        if (v[j].valorAfeto > v[j+1].valorAfeto)", x, y, 16, BLUE); y += 20;
+        DrawText("            swap(v[j], v[j+1]);", x, y, 16, BLUE); y += 20;
+        DrawText("    }", x, y, 16, BLUE); y += 20;
+        DrawText("}", x, y, 16, BLUE);
+    }
+    else if (fase == 2) {
+        DrawText("Selection Sort: em cada posicao, procura o menor peso no resto do vetor.",
+                 x, y, 18, DARKBLUE);
+        y += 28;
+        DrawText("Depois coloca esse menor na posicao correta. Poucas trocas, mas ainda percorre",
+                 x, y, 16, DARKGRAY);
+        y += 22;
+        DrawText("bastante o vetor de memorias.", x, y, 16, DARKGRAY);
+        y += 28;
+        DrawText("Exemplo:", x, y, 16, BLUE); y += 22;
+        DrawText("for (i = 0; i < n-1; i++) {", x, y, 16, BLUE); y += 20;
+        DrawText("    int min = i;", x, y, 16, BLUE); y += 20;
+        DrawText("    for (j = i+1; j < n; j++)", x, y, 16, BLUE); y += 20;
+        DrawText("        if (v[j].valorAfeto < v[min].valorAfeto) min = j;", x, y, 16, BLUE); y += 20;
+        DrawText("    swap(v[i], v[min]);", x, y, 16, BLUE); y += 20;
+        DrawText("}", x, y, 16, BLUE);
+    }
+    else { // fase 3
+        DrawText("Quick Sort: escolhe um pivo e separa memorias com peso menor e maior.",
+                 x, y, 18, DARKBLUE);
+        y += 28;
+        DrawText("Ordena recursivamente cada lado. Em geral, e bem rapido para vetores grandes,",
+                 x, y, 16, DARKGRAY);
+        y += 22;
+        DrawText("por isso e muito usado na pratica.", x, y, 16, DARKGRAY);
+        y += 28;
+        DrawText("Exemplo simplificado:", x, y, 16, BLUE); y += 22;
+        DrawText("int p = particiona(v, esq, dir);", x, y, 16, BLUE); y += 20;
+        DrawText("quickSort(v, esq, p-1);",         x, y, 16, BLUE); y += 20;
+        DrawText("quickSort(v, p+1, dir);",         x, y, 16, BLUE);
+    }
+}
+
+// ---------------------------------------------------
+//                      MAIN
+// ---------------------------------------------------
 int main(void) {
     InitWindow(LARGURA, ALTURA, "Crescendo na Memoria - Pique-Esconde dos Algoritmos");
     InitAudioDevice();
@@ -115,99 +192,301 @@ int main(void) {
     Music musicaJogo = LoadMusicStream("assets/game_music.mp3");
     PlayMusicStream(musicaMenu);
 
-    EstadoJogo estado = MENU;
+    EstadoJogo estado = EST_MENU;
     int faseAtual = 1;
+
     Vector2 jogador = {150, 450};
     float velocidade = 3.0f;
+    Labirinto lab = CriarLabirinto(faseAtual);
 
     Memoria vetor[TAMANHO];
     criarMemorias(vetor, TAMANHO);
-    Labirinto lab = criarLabirinto(faseAtual);
+
+    // variaveis da tela de PESOS
+    int indiceSelecionado = 0;
 
     while (!WindowShouldClose()) {
-        if (estado == MENU) UpdateMusicStream(musicaMenu);
-        else UpdateMusicStream(musicaJogo);
+        if (estado == EST_MENU || estado == EST_FIM)
+            UpdateMusicStream(musicaMenu);
+        else
+            UpdateMusicStream(musicaJogo);
 
         BeginDrawing();
 
-        // ---------- MENU ----------
-        if (estado == MENU) {
-            ClearBackground((Color){135, 206, 235, 255});
-            DrawCircle(780, 100, 60, YELLOW);
-            DrawCircle(300, 600, 300, (Color){0, 200, 0, 255});
-            DrawText("Crescendo na Memoria", 240, 140, 40, DARKBLUE);
-            DrawText("Pique-Esconde dos Algoritmos", 250, 200, 20, GRAY);
-            DrawText("Pressione [ENTER] para iniciar", 300, 350, 20, DARKGRAY);
+        // ---------------- MENU ----------------
+        if (estado == EST_MENU) {
+            DesenharFundoFase1();
+            const char *titulo    = "Crescendo na Memoria";
+            const char *subtitulo = "Pique-Esconde dos Algoritmos";
+            int tl = MeasureText(titulo, 40);
+            int sl = MeasureText(subtitulo, 20);
+            DrawText(titulo,    (LARGURA - tl)/2, 120, 40, DARKBLUE);
+            DrawText(subtitulo, (LARGURA - sl)/2, 180, 20, DARKGRAY);
+
+            DrawText("Pressione [ENTER] para comecar", 280, 320, 20, DARKGRAY);
+
             if (IsKeyPressed(KEY_ENTER)) {
                 StopMusicStream(musicaMenu);
                 PlayMusicStream(musicaJogo);
-                estado = FASE;
-                faseAtual = 1;
-                jogador = (Vector2){150, 450};
+
+                estado      = EST_FASE;
+                faseAtual   = 1;
+                jogador     = (Vector2){150, 450};
+                lab         = CriarLabirinto(faseAtual);
                 criarMemorias(vetor, TAMANHO);
-                lab = criarLabirinto(faseAtual);
             }
         }
 
-        // ---------- FASES ----------
-        else if (estado == FASE) {
-            if (faseAtual == 1) desenharFundoFase1();
-            else if (faseAtual == 2) desenharFundoFase2();
-            else desenharFundoFase3();
+        // ---------------- FASE (labirinto) ----------------
+        else if (estado == EST_FASE) {
 
-            DrawText(TextFormat("Fase %d / 3", faseAtual), 20, 20, 20, DARKBLUE);
-            const char *algoritmoNome = (faseAtual == 1) ? "Bubble Sort" : (faseAtual == 2) ? "Selection Sort" : "Quick Sort";
-            DrawText(TextFormat("Algoritmo desta fase: %s", algoritmoNome), 20, 50, 18, BLUE);
-            DrawText("Use as setas para mover e [ESPACO] para restaurar memorias", 20, 575, 18, DARKGRAY);
+            if (faseAtual == 1) DesenharFundoFase1();
+            else if (faseAtual == 2) DesenharFundoFase2();
+            else DesenharFundoFase3();
+
+            DrawText(TextFormat("Fase %d / 3", faseAtual), 20, 20, 22, DARKBLUE);
+            DrawText(TextFormat("Algoritmo desta fase: %s", NomeAlgoritmoDaFase(faseAtual)),
+                     20, 50, 20, BLUE);
+            DrawText("Use as setas para mover e [ESPACO] para restaurar memorias",
+                     20, ALTURA - 30, 18, DARKGRAY);
 
             Vector2 novaPos = jogador;
             if (IsKeyDown(KEY_RIGHT)) novaPos.x += velocidade;
-            if (IsKeyDown(KEY_LEFT)) novaPos.x -= velocidade;
-            if (IsKeyDown(KEY_UP)) novaPos.y -= velocidade;
-            if (IsKeyDown(KEY_DOWN)) novaPos.y += velocidade;
+            if (IsKeyDown(KEY_LEFT))  novaPos.x -= velocidade;
+            if (IsKeyDown(KEY_UP))    novaPos.y -= velocidade;
+            if (IsKeyDown(KEY_DOWN))  novaPos.y += velocidade;
 
             bool colidiu = false;
-            for (int i = 0; i < lab.qtd; i++)
-                if (CheckCollisionCircleRec(novaPos, 12, lab.paredes[i])) colidiu = true;
+            for (int i = 0; i < lab.qtd; i++) {
+                if (CheckCollisionCircleRec(novaPos, 12, lab.paredes[i])) {
+                    colidiu = true;
+                    break;
+                }
+            }
             if (!colidiu) jogador = novaPos;
 
-            for (int i = 0; i < lab.qtd; i++) DrawRectangleRec(lab.paredes[i], DARKGRAY);
-            DrawCircleV(jogador, 12, DARKBLUE);
-            desenharMemorias(vetor, TAMANHO);
+            for (int i = 0; i < lab.qtd; i++)
+                DrawRectangleRec(lab.paredes[i], DARKGRAY);
 
+            DrawCircleV(jogador, 12, DARKBLUE);
+
+            // memórias
             for (int i = 0; i < TAMANHO; i++) {
-                Rectangle r = {vetor[i].coordX, vetor[i].coordY, 40, 40};
-                if (!vetor[i].encontrada && CheckCollisionCircleRec(jogador, 12, r)) {
-                    DrawText("Pressione [ESPACO] para restaurar memoria", 250, 50, 20, DARKBLUE);
-                    if (IsKeyPressed(KEY_SPACE)) vetor[i].encontrada = true;
+                Rectangle r = { vetor[i].coordX, vetor[i].coordY, 40, 40 };
+                Color cor = vetor[i].encontrada ? BLUE : SKYBLUE;
+                DrawRectangleRec(r, cor);
+
+                // nome só depois de encontrada
+                if (vetor[i].encontrada) {
+                    DrawText(vetor[i].nome,
+                             vetor[i].coordX - 20,
+                             vetor[i].coordY - 18,
+                             10, RAYWHITE);
+                }
+
+                if (!vetor[i].encontrada &&
+                    CheckCollisionCircleRec(jogador, 12, r)) {
+                    DrawText("Pressione [ESPACO] para restaurar memoria",
+                             220, 80, 20, RED);
+                    if (IsKeyPressed(KEY_SPACE)) {
+                        vetor[i].encontrada = 1;
+                    }
                 }
             }
 
             bool todas = true;
-            for (int i = 0; i < TAMANHO; i++) if (!vetor[i].encontrada) todas = false;
+            for (int i = 0; i < TAMANHO; i++)
+                if (!vetor[i].encontrada) todas = false;
 
+            // terminou de pegar todas -> ir para tela de PESOS
             if (todas) {
-                if (faseAtual < 3) {
-                    faseAtual++;
-                    criarMemorias(vetor, TAMANHO);
-                    lab = criarLabirinto(faseAtual);
-                    jogador = (Vector2){150, 450};
-                } else estado = FIM;
+                estado = EST_PESOS;
+                indiceSelecionado = 0;
+                // zera pesos para o jogador começar a atribuir
+                for (int i = 0; i < TAMANHO; i++)
+                    vetor[i].valorAfeto = 0;
             }
         }
 
-        // ---------- FIM ----------
-        else if (estado == FIM) {
-            ClearBackground((Color){10, 10, 30, 255});
-            DrawText("Parabens!", 380, 220, 40, SKYBLUE);
-            DrawText("Voce restaurou todas as memorias!", 250, 280, 24, LIGHTGRAY);
-            DrawText("Pressione [ENTER] para jogar novamente", 260, 340, 20, GRAY);
+        // ---------------- ATRIBUIR PESOS ----------------
+        else if (estado == EST_PESOS) {
+
+            if (faseAtual == 1) DesenharFundoFase1();
+            else if (faseAtual == 2) DesenharFundoFase2();
+            else DesenharFundoFase3();
+
+            DrawText(TextFormat("Fase %d / 3", faseAtual), 20, 20, 22, DARKBLUE);
+            DrawText(TextFormat("Algoritmo desta fase: %s",
+                                NomeAlgoritmoDaFase(faseAtual)),
+                     20, 50, 20, BLUE);
+
+            DrawText("Agora distribua os PESOS (1 = mais importante, 5 = menos).",
+                     60, 100, 20, DARKBLUE);
+            DrawText("Use SETA CIMA/BAIXO para escolher a memoria, e teclas [1..5] para definir o peso.",
+                     60, 130, 18, DARKGRAY);
+            DrawText("Voce pode mudar o peso quantas vezes quiser. ENTER confirma.",
+                     60, 155, 18, DARKGRAY);
+
+            // navegação
+            if (IsKeyPressed(KEY_UP)) {
+                indiceSelecionado--;
+                if (indiceSelecionado < 0) indiceSelecionado = TAMANHO - 1;
+            }
+            if (IsKeyPressed(KEY_DOWN)) {
+                indiceSelecionado++;
+                if (indiceSelecionado >= TAMANHO) indiceSelecionado = 0;
+            }
+
+            // atribuição de peso sem repetir
+            int pesoEscolhido = 0;
+            if (IsKeyPressed(KEY_ONE))   pesoEscolhido = 1;
+            if (IsKeyPressed(KEY_TWO))   pesoEscolhido = (TAMANHO >= 2 ? 2 : 0);
+            if (IsKeyPressed(KEY_THREE)) pesoEscolhido = (TAMANHO >= 3 ? 3 : 0);
+            if (IsKeyPressed(KEY_FOUR))  pesoEscolhido = (TAMANHO >= 4 ? 4 : 0);
+            if (IsKeyPressed(KEY_FIVE))  pesoEscolhido = (TAMANHO >= 5 ? 5 : 0);
+
+            if (pesoEscolhido > 0) {
+                // remove esse peso de qualquer outro
+                for (int i = 0; i < TAMANHO; i++) {
+                    if (i != indiceSelecionado &&
+                        vetor[i].valorAfeto == pesoEscolhido) {
+                        vetor[i].valorAfeto = 0;
+                    }
+                }
+                // aplica na selecionada
+                vetor[indiceSelecionado].valorAfeto = pesoEscolhido;
+            }
+
+            // desenha lista
+            int y0 = 200;
+            for (int i = 0; i < TAMANHO; i++) {
+                Color corLinha = (i == indiceSelecionado) ? YELLOW : RAYWHITE;
+                DrawRectangle(40, y0 - 4, LARGURA - 80, 26, Fade(BLACK, 0.1f));
+
+                DrawText(TextFormat("%d) %s", i+1, vetor[i].nome),
+                         60, y0, 18, corLinha);
+
+                const char *pesoTxt =
+                    (vetor[i].valorAfeto == 0) ?
+                    "(sem peso)" :
+                    TextFormat("(peso %d)", vetor[i].valorAfeto);
+
+                DrawText(pesoTxt, 650, y0, 18, corLinha);
+                y0 += 30;
+            }
+
+            // verifica se todos possuem peso
+            bool completo = true;
+            for (int i = 0; i < TAMANHO; i++) {
+                if (vetor[i].valorAfeto <= 0) {
+                    completo = false;
+                    break;
+                }
+            }
+
+            if (!completo)
+                DrawText("Defina um peso diferente para cada memoria.",
+                         60, ALTURA - 60, 18, RED);
+            else
+                DrawText("Tudo pronto! Pressione [ENTER] para ordenar as memorias.",
+                         60, ALTURA - 60, 18, GREEN);
+
+            if (completo && IsKeyPressed(KEY_ENTER)) {
+                // ordena usando o algoritmo da fase
+                ordenarMemorias(vetor, TAMANHO, TipoAlgoritmoDaFase(faseAtual));
+                estado = EST_RESULTADO;
+            }
+        }
+
+        // ---------------- RESULTADO ORDENACAO ----------------
+        else if (estado == EST_RESULTADO) {
+
+            if (faseAtual == 1) DesenharFundoFase1();
+            else if (faseAtual == 2) DesenharFundoFase2();
+            else DesenharFundoFase3();
+
+            DrawText(TextFormat("Fase %d / 3", faseAtual), 20, 20, 22, DARKBLUE);
+            DrawText(TextFormat("Algoritmo desta fase: %s",
+                                NomeAlgoritmoDaFase(faseAtual)),
+                     20, 50, 20, BLUE);
+
+            DrawText("Resultado da ordenacao pelas suas escolhas:",
+                     140, 100, 24, DARKBLUE);
+
+            int y = 150;
+            for (int i = 0; i < TAMANHO; i++) {
+                DrawText(TextFormat("%d) %s  (peso %d)",
+                                    i+1,
+                                    vetor[i].nome,
+                                    vetor[i].valorAfeto),
+                         140, y, 20, DARKBLUE);
+                y += 32;
+            }
+
+            DrawText(TextFormat("Aqui usamos %s para organizar do peso 1 ao %d.",
+                                NomeAlgoritmoDaFase(faseAtual),
+                                TAMANHO),
+                     140, y + 10, 18, DARKGRAY);
+
+            DrawText("Pressione [ENTER] para ver uma explicacao do algoritmo.",
+                     140, ALTURA - 40, 18, RED);
+
             if (IsKeyPressed(KEY_ENTER)) {
-                estado = MENU;
+                estado = EST_EXPLICACAO;
+            }
+        }
+
+        // ---------------- EXPLICACAO ALGORITMO ----------------
+        else if (estado == EST_EXPLICACAO) {
+
+            if (faseAtual == 1) DesenharFundoFase1();
+            else if (faseAtual == 2) DesenharFundoFase2();
+            else DesenharFundoFase3();
+
+            DrawText(TextFormat("Fase %d / 3", faseAtual), 20, 20, 22, DARKBLUE);
+            DrawText(TextFormat("Algoritmo desta fase: %s",
+                                NomeAlgoritmoDaFase(faseAtual)),
+                     20, 50, 20, BLUE);
+
+            DrawText("Como esse algoritmo organiza as memorias?",
+                     140, 100, 24, DARKBLUE);
+
+            DesenharPainelExplicacao(faseAtual);
+
+            DrawText("Pressione [ENTER] para seguir.",
+                     260, ALTURA - 40, 20, RED);
+
+            if (IsKeyPressed(KEY_ENTER)) {
+                if (faseAtual < 3) {
+                    faseAtual++;
+                    jogador = (Vector2){150, 450};
+                    lab     = CriarLabirinto(faseAtual);
+                    criarMemorias(vetor, TAMANHO);
+                    estado  = EST_FASE;
+                } else {
+                    StopMusicStream(musicaJogo);
+                    PlayMusicStream(musicaMenu);
+                    estado = EST_FIM;
+                }
+            }
+        }
+
+        // ---------------- TELA FINAL ----------------
+        else if (estado == EST_FIM) {
+            DesenharFundoFase3();
+            DrawText("Parabens!", 360, 200, 40, SKYBLUE);
+            DrawText("Voce organizou todas as memorias com tres algoritmos diferentes!",
+                     120, 260, 20, RAYWHITE);
+            DrawText("Pressione [ENTER] para voltar ao menu ou [ESC] para sair.",
+                     150, 320, 20, LIGHTGRAY);
+
+            if (IsKeyPressed(KEY_ENTER)) {
+                estado    = EST_MENU;
                 faseAtual = 1;
+                jogador   = (Vector2){150, 450};
+                lab       = CriarLabirinto(faseAtual);
                 criarMemorias(vetor, TAMANHO);
-                lab = criarLabirinto(faseAtual);
-                StopMusicStream(musicaJogo);
+                StopMusicStream(musicaMenu);
                 PlayMusicStream(musicaMenu);
             }
         }

@@ -2,7 +2,7 @@
 #define MEMORIA_H
 
 typedef struct {
-    char nome[50];
+    char nome[100];
     int valorAfeto;
     int coordX;
     int coordY;
