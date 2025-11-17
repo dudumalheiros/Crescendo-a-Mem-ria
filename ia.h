@@ -1,7 +1,5 @@
 #ifndef IA_H
 #define IA_H
 #include "memoria.h"
-
-void ordenarIA(Memoria vetor[], int n);
-
+void iaOrdena(Memoria vetor[], int n);
 #endif

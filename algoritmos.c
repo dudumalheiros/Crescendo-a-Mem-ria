@@ -1,14 +1,12 @@
 #include "algoritmos.h"
 
-// Tipos: 1 = Bubble, 2 = Selection, 3 = Quick
-
 void bubbleSort(Memoria vetor[], int n) {
     for (int i = 0; i < n - 1; i++) {
         for (int j = 0; j < n - i - 1; j++) {
             if (vetor[j].valorAfeto > vetor[j + 1].valorAfeto) {
-                Memoria temp = vetor[j];
+                Memoria tmp = vetor[j];
                 vetor[j] = vetor[j + 1];
-                vetor[j + 1] = temp;
+                vetor[j + 1] = tmp;
             }
         }
     }
@@ -17,10 +15,9 @@ void bubbleSort(Memoria vetor[], int n) {
 void selectionSort(Memoria vetor[], int n) {
     for (int i = 0; i < n - 1; i++) {
         int min = i;
-        for (int j = i + 1; j < n; j++) {
+        for (int j = i + 1; j < n; j++)
             if (vetor[j].valorAfeto < vetor[min].valorAfeto)
                 min = j;
-        }
         Memoria temp = vetor[i];
         vetor[i] = vetor[min];
         vetor[min] = temp;
