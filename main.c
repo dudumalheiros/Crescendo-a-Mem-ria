@@ -5,6 +5,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 
 #define LARGURA 900
 #define ALTURA 600
@@ -12,43 +13,131 @@
 
 typedef enum { MENU, FASE, FIM } EstadoJogo;
 
+typedef struct {
+    Rectangle paredes[20];
+    int qtd;
+} Labirinto;
+
+// ---------- FUNÇÕES DE FUNDO ----------
+void desenharFundoFase1(void) {
+    ClearBackground((Color){135, 206, 235, 255});
+    DrawCircle(780, 100, 60, YELLOW);
+    DrawCircle(300, 600, 300, (Color){0, 200, 0, 255});
+    DrawCircle(700, 620, 250, (Color){34, 139, 34, 255});
+}
+
+void desenharFundoFase2(void) {
+    ClearBackground((Color){255, 165, 90, 255});
+    DrawCircle(120, 100, 60, ORANGE);
+    DrawCircle(300, 600, 300, (Color){200, 120, 50, 255});
+    DrawCircle(700, 620, 250, (Color){160, 82, 45, 255});
+}
+
+void desenharFundoFase3(void) {
+    ClearBackground((Color){10, 10, 30, 255});
+    DrawCircle(780, 100, 50, (Color){240, 240, 180, 255});
+    for (int i = 0; i < 80; i++)
+        DrawPixel(rand() % LARGURA, rand() % ALTURA, WHITE);
+}
+
+// ---------- LABIRINTOS ----------
+Labirinto criarLabirinto(int fase) {
+    Labirinto l = {0};
+
+    if (fase == 1) { // Fase 1 - com passagem central aberta
+        Rectangle paredesTemp[] = {
+            {50, 100, 800, 20},  // topo
+            {50, 500, 800, 20},  // base
+            {50, 100, 20, 420},  // esquerda
+            {830, 100, 20, 420}, // direita
+
+            // retângulo interno com vão no meio
+            {200, 180, 500, 20},  // topo interno
+            {200, 180, 20, 160},  // lateral esquerda
+            {680, 180, 20, 160},  // lateral direita
+            {200, 320, 190, 20},  // base esquerda
+            {510, 320, 190, 20},  // base direita (abertura central)
+        };
+        l.qtd = sizeof(paredesTemp) / sizeof(paredesTemp[0]);
+        for (int i = 0; i < l.qtd; i++) l.paredes[i] = paredesTemp[i];
+    }
+
+    else if (fase == 2) { // Fase 2 - média, com caminhos livres
+        Rectangle paredesTemp[] = {
+            {50, 100, 800, 20},  // topo
+            {50, 500, 800, 20},  // base
+            {50, 100, 20, 420},  // esquerda
+            {830, 100, 20, 420}, // direita
+
+            // blocos internos com vão lateral e meio
+            {150, 200, 600, 20},
+            {150, 350, 200, 20}, // base esquerda
+            {550, 350, 200, 20}, // base direita
+            {150, 200, 20, 150}, // lateral esquerda
+            {730, 200, 20, 150}, // lateral direita
+            {430, 260, 40, 20}   // pilar central curto
+        };
+        l.qtd = sizeof(paredesTemp) / sizeof(paredesTemp[0]);
+        for (int i = 0; i < l.qtd; i++) l.paredes[i] = paredesTemp[i];
+    }
+
+   else { // Fase 3 - difícil, mas com passagens funcionais
+    Rectangle paredesTemp[] = {
+        // Moldura externa
+        {50, 80, 800, 20},   // topo
+        {50, 520, 800, 20},  // base
+        {50, 80, 20, 460},   // esquerda
+        {830, 80, 20, 460},  // direita
+
+        // Estrutura interna com passagem no centro
+        {200, 180, 500, 20}, // topo interno
+        {200, 420, 220, 20}, // base esquerda
+        {480, 420, 220, 20}, // base direita (vão central)
+        {200, 180, 20, 240}, // lateral esquerda
+        {680, 180, 20, 240}, // lateral direita
+        {420, 280, 60, 20}   // pequena ponte no meio
+    };
+    l.qtd = sizeof(paredesTemp) / sizeof(paredesTemp[0]);
+    for (int i = 0; i < l.qtd; i++) l.paredes[i] = paredesTemp[i];
+}
+
+
+    return l;
+}
+
+// ---------- PRINCIPAL ----------
 int main(void) {
     InitWindow(LARGURA, ALTURA, "Crescendo na Memoria - Pique-Esconde dos Algoritmos");
     InitAudioDevice();
     SetTargetFPS(60);
 
-    // === Trilhas sonoras ===
     Music musicaMenu = LoadMusicStream("assets/menu_music.mp3");
     Music musicaJogo = LoadMusicStream("assets/game_music.mp3");
     PlayMusicStream(musicaMenu);
 
     EstadoJogo estado = MENU;
     int faseAtual = 1;
-    bool jogoAtivo = true;
-
     Vector2 jogador = {150, 450};
     float velocidade = 3.0f;
 
     Memoria vetor[TAMANHO];
     criarMemorias(vetor, TAMANHO);
+    Labirinto lab = criarLabirinto(faseAtual);
 
-    while (!WindowShouldClose() && jogoAtivo) {
+    while (!WindowShouldClose()) {
         if (estado == MENU) UpdateMusicStream(musicaMenu);
         else UpdateMusicStream(musicaJogo);
 
         BeginDrawing();
-        ClearBackground(RAYWHITE);
 
-        // =================== MENU ===================
+        // ---------- MENU ----------
         if (estado == MENU) {
-            DrawText("Crescendo na Memoria", 230, 150, 42, DARKBLUE);
-            DrawText("Pique-Esconde dos Algoritmos", 240, 210, 22, GRAY);
+            ClearBackground((Color){135, 206, 235, 255});
+            DrawCircle(780, 100, 60, YELLOW);
+            DrawCircle(300, 600, 300, (Color){0, 200, 0, 255});
+            DrawText("Crescendo na Memoria", 240, 140, 40, DARKBLUE);
+            DrawText("Pique-Esconde dos Algoritmos", 250, 200, 20, GRAY);
             DrawText("Pressione [ENTER] para iniciar", 300, 350, 20, DARKGRAY);
-            DrawText("Use as setas para se mover durante o jogo", 260, 390, 18, DARKGRAY);
-
-            float brilho = (sinf(GetTime() * 2) + 1) / 2;
-            DrawCircle(450, 450, 15 + brilho * 5, Fade(SKYBLUE, 0.8f));
-
             if (IsKeyPressed(KEY_ENTER)) {
                 StopMusicStream(musicaMenu);
                 PlayMusicStream(musicaJogo);
@@ -56,126 +145,70 @@ int main(void) {
                 faseAtual = 1;
                 jogador = (Vector2){150, 450};
                 criarMemorias(vetor, TAMANHO);
+                lab = criarLabirinto(faseAtual);
             }
         }
 
-        // =================== FASES ===================
+        // ---------- FASES ----------
         else if (estado == FASE) {
-            DrawText(TextFormat("Fase %d / 3", faseAtual), 20, 20, 22, DARKBLUE);
-            DrawText("[1] Bubble  [2] Selection  [3] Quick  [I] IA ordena", 20, 550, 18, BLUE);
+            if (faseAtual == 1) desenharFundoFase1();
+            else if (faseAtual == 2) desenharFundoFase2();
+            else desenharFundoFase3();
+
+            DrawText(TextFormat("Fase %d / 3", faseAtual), 20, 20, 20, DARKBLUE);
+            const char *algoritmoNome = (faseAtual == 1) ? "Bubble Sort" : (faseAtual == 2) ? "Selection Sort" : "Quick Sort";
+            DrawText(TextFormat("Algoritmo desta fase: %s", algoritmoNome), 20, 50, 18, BLUE);
             DrawText("Use as setas para mover e [ESPACO] para restaurar memorias", 20, 575, 18, DARKGRAY);
 
-            Vector2 anterior = jogador;
+            Vector2 novaPos = jogador;
+            if (IsKeyDown(KEY_RIGHT)) novaPos.x += velocidade;
+            if (IsKeyDown(KEY_LEFT)) novaPos.x -= velocidade;
+            if (IsKeyDown(KEY_UP)) novaPos.y -= velocidade;
+            if (IsKeyDown(KEY_DOWN)) novaPos.y += velocidade;
 
-            // Movimento do jogador
-            if (IsKeyDown(KEY_RIGHT)) jogador.x += velocidade;
-            if (IsKeyDown(KEY_LEFT)) jogador.x -= velocidade;
-            if (IsKeyDown(KEY_UP)) jogador.y -= velocidade;
-            if (IsKeyDown(KEY_DOWN)) jogador.y += velocidade;
+            bool colidiu = false;
+            for (int i = 0; i < lab.qtd; i++)
+                if (CheckCollisionCircleRec(novaPos, 12, lab.paredes[i])) colidiu = true;
+            if (!colidiu) jogador = novaPos;
 
-            if (jogador.x < 0) jogador.x = 0;
-            if (jogador.x > LARGURA) jogador.x = LARGURA;
-            if (jogador.y < 0) jogador.y = 0;
-            if (jogador.y > ALTURA) jogador.y = ALTURA;
-
-            Rectangle *lab = NULL;
-            int qtdLab = 0;
-
-            // ===== FASE 1 =====
-            if (faseAtual == 1) {
-                static Rectangle lab1[] = {
-                    {50, 100, 800, 20}, {50, 500, 300, 20}, {550, 500, 300, 20},
-                    {50, 100, 20, 420}, {830, 100, 20, 420},
-                    {250, 200, 400, 20}, {250, 350, 180, 20},
-                    {470, 350, 180, 20}, {250, 200, 20, 150}, {630, 200, 20, 150}
-                };
-                lab = lab1; qtdLab = 10;
-            }
-
-            // ===== FASE 2 (corrigida com passagens abertas) =====
-            else if (faseAtual == 2) {
-                static Rectangle lab2[] = {
-                    // Contorno externo
-                    {60, 100, 780, 20}, {60, 500, 780, 20},
-                    {60, 100, 20, 420}, {820, 100, 20, 420},
-
-                    // Estrutura interna (com passagens abertas)
-                    {150, 200, 600, 20},   // parede superior interna
-                    {150, 350, 600, 20},   // parede inferior interna
-                    {150, 200, 20, 150},   // lateral esquerda interna
-                    {730, 250, 20, 100},   // lateral direita (passagens superior e inferior)
-                    {410, 200, 20, 80},    // pilar superior central
-                    {410, 320, 20, 50},    // pilar inferior central (abertura entre 280–320)
-                    {300, 350, 300, 20},   // linha horizontal mais abaixo
-                    {300, 380, 20, 120},   // coluna esquerda abaixo
-                    {580, 380, 20, 120}    // coluna direita abaixo
-                };
-                lab = lab2; qtdLab = 10;
-            }
-
-            // ===== FASE 3 =====
-            else if (faseAtual == 3) {
-                static Rectangle lab3[] = {
-                    {50, 80, 800, 20}, {50, 520, 300, 20}, {550, 520, 300, 20},
-                    {50, 80, 20, 460}, {830, 80, 20, 460},
-                    {200, 180, 500, 20}, {200, 420, 200, 20}, {500, 420, 200, 20},
-                    {200, 180, 20, 240}, {680, 180, 20, 240},
-                    {430, 180, 60, 20}, {430, 420, 60, 20},
-                    {340, 300, 280, 20}
-                };
-                lab = lab3; qtdLab = 13;
-            }
-
-            // Colisão com paredes
-            for (int i = 0; i < qtdLab; i++) {
-                DrawRectangleRec(lab[i], DARKGRAY);
-                if (CheckCollisionCircleRec(jogador, 12, lab[i])) jogador = anterior;
-            }
-
-            // Jogador
+            for (int i = 0; i < lab.qtd; i++) DrawRectangleRec(lab.paredes[i], DARKGRAY);
             DrawCircleV(jogador, 12, DARKBLUE);
-
-            // Memórias
             desenharMemorias(vetor, TAMANHO);
 
-            // Interação com memórias
             for (int i = 0; i < TAMANHO; i++) {
                 Rectangle r = {vetor[i].coordX, vetor[i].coordY, 40, 40};
                 if (!vetor[i].encontrada && CheckCollisionCircleRec(jogador, 12, r)) {
                     DrawText("Pressione [ESPACO] para restaurar memoria", 250, 50, 20, DARKBLUE);
-                    if (IsKeyPressed(KEY_SPACE)) {
-                        vetor[i].encontrada = true;
-                        ordenarMemorias(vetor, TAMANHO, 3);
-                    }
+                    if (IsKeyPressed(KEY_SPACE)) vetor[i].encontrada = true;
                 }
             }
 
-            // Passar de fase
             bool todas = true;
-            for (int i = 0; i < TAMANHO; i++)
-                if (!vetor[i].encontrada) todas = false;
+            for (int i = 0; i < TAMANHO; i++) if (!vetor[i].encontrada) todas = false;
 
             if (todas) {
                 if (faseAtual < 3) {
                     faseAtual++;
                     criarMemorias(vetor, TAMANHO);
+                    lab = criarLabirinto(faseAtual);
                     jogador = (Vector2){150, 450};
                 } else estado = FIM;
             }
         }
 
-        // =================== FINAL ===================
+        // ---------- FIM ----------
         else if (estado == FIM) {
-            DrawText("Parabens!", 380, 220, 40, DARKBLUE);
-            DrawText("Voce restaurou todas as memorias!", 250, 280, 24, DARKGRAY);
+            ClearBackground((Color){10, 10, 30, 255});
+            DrawText("Parabens!", 380, 220, 40, SKYBLUE);
+            DrawText("Voce restaurou todas as memorias!", 250, 280, 24, LIGHTGRAY);
             DrawText("Pressione [ENTER] para jogar novamente", 260, 340, 20, GRAY);
-
             if (IsKeyPressed(KEY_ENTER)) {
-                StopMusicStream(musicaJogo);
-                PlayMusicStream(musicaMenu);
                 estado = MENU;
                 faseAtual = 1;
                 criarMemorias(vetor, TAMANHO);
+                lab = criarLabirinto(faseAtual);
+                StopMusicStream(musicaJogo);
+                PlayMusicStream(musicaMenu);
             }
         }
 
@@ -188,6 +221,5 @@ int main(void) {
     UnloadMusicStream(musicaJogo);
     CloseAudioDevice();
     CloseWindow();
-
     return 0;
 }
