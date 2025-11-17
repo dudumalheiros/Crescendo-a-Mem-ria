@@ -58,4 +58,4 @@ gcc main.c memoria.c algoritmos.c ia.c -lraylib -lwinmm -lgdi32 -o jogo.exe
 
 ## 🎮 Demonstração do Jogo
 
-![Gameplay](clideo_editor_9b9ee5229ca74cb291b9d6833ae8dc46-ezgif.com-video-to-gif-converter.gif)
+![Gameplay](assets/gameplay.gif)
