@@ -58,4 +58,5 @@ gcc main.c memoria.c algoritmos.c ia.c -lraylib -lwinmm -lgdi32 -o jogo.exe
 
 ## 🎮 Demonstração do Jogo
 
-![Gameplay](assets/gameplay.gif)
+![Gameplay](https://raw.githubusercontent.com/dudumalheiros/Crescendo-a-Mem-ria/main/assets/gameplay.gif)
+
